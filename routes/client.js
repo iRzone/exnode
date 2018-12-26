@@ -4,7 +4,7 @@ var connection = require('../db/index.js')
 
 var sql = 'SELECT * FROM websites'
 
-connection.connect();
+// connection.connect();
 
 /* GET client listing. */
 router.get('/', function(req, res, next) {
