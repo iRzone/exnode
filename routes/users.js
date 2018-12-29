@@ -38,12 +38,12 @@ router.post('/login', function(req, res, next) { // 登录
       if (result.length === 0) {
         getBack.Code = 204
         getBack.Message = '该用户尚未注册！'
-        getBack.data = result
+        getBack.Data = result
         res.json(getBack)
       } else {
         getBack.Code = 200
         getBack.Message = '登录成功！'
-        getBack.data = result
+        getBack.Data = result
         res.json(getBack)
       }
     })
