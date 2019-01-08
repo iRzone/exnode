@@ -1,9 +1,9 @@
 var config = {
   dbcfg: {
-    host     : 'localhost',
-    user     : 'root',
-    password : 'wddlzb1314o',
-    database : 'web',
+    host: 'localhost',
+    user: 'root',
+    password: 'wddlzb1314o',
+    database: 'web',
     port: '3306'
   }
 }

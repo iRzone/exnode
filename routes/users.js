@@ -2,20 +2,14 @@ var express = require('express');
 var router = express.Router();
 var connection = require('../db')
 var Base64 = require('base-64')
-// var bodyParser = require('body-parser')
-
-// var app = express();
 
 const sql = {
   add: 'insert into users(ID, UserName, PassWord) values',
   check: 'select * from users'
 }
 
-// app.use(bodyParser.json)   // 在其他路由中间件前（尽可能靠前，以能够通过bodyPaser获取req.body）
-// app.use(bodyParser.urlencoded({ extended: false})) // 调试工具如果出现警告请加上extended: false
-
 /* GET users listing. */
-router.post('/add', function(req, res, next) { // 新增用户
+router.post('/register', function(req, res, next) { // 新增用户
   console.log(req.body)
   connection.query(sql, function (err, result) {
     // 
