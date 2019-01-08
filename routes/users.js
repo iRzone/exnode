@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var connection = require('../db')
 var Base64 = require('base-64')
+var handleJWT = require('../lib/jwt.js')
 
 const sql = {
   add: 'insert into users(ID, UserName, PassWord) values',
@@ -35,6 +36,8 @@ router.post('/login', function(req, res, next) { // 登录
         getBack.Data = result
         res.json(getBack)
       } else {
+        getBack.token = handleJWT.createToken(params.UserName)
+        // getBack.decodeToken = handleJWT.decodeToken(getBack.token) // 测试解析token
         getBack.Code = 200
         getBack.Message = '登录成功！'
         getBack.Data = result
