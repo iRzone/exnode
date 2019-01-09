@@ -11,16 +11,28 @@ const sql = {
 
 /* GET users listing. */
 router.post('/register', function(req, res, next) { // 新增用户
-  console.log(req.body)
-  connection.query(sql, function (err, result) {
-    // 
+  let params = req.body.params
+  let PassWord = Base64.decode(params.PassWord)
+  let getBack = {}
+  connection.query(`${sql.add}(null, '${params.UserName}', ${PassWord})`, function (err, result) {
+    if (err) {
+      console.log(err)
+      return
+    }
+    if (result !== {}){
+      getBack.Code = 200
+      getBack.Message = '注册成功'
+      res.send(getBack)
+    }
   })
 });
 
 router.post('/login', function(req, res, next) { // 登录
   let params = req.body.params
   let keyArray = []
-  let getBack = {}
+  let getBack = {
+    Data: {}
+  }
   for (prop in params) {  // 找出req.body.params对象的键
     keyArray.push(prop)
   }
@@ -36,11 +48,14 @@ router.post('/login', function(req, res, next) { // 登录
         getBack.Data = result
         res.json(getBack)
       } else {
+        result = JSON.stringify(result)
+        result = JSON.parse(result)
         getBack.token = handleJWT.createToken(params.UserName)
         // getBack.decodeToken = handleJWT.decodeToken(getBack.token) // 测试解析token
         getBack.Code = 200
         getBack.Message = '登录成功！'
-        getBack.Data = result
+        getBack.Data.UserName = result[0].UserName
+        getBack.Data.UserID = result[0].ID
         res.json(getBack)
       }
     })
