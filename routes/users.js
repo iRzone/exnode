@@ -5,12 +5,12 @@ var Base64 = require('base-64')
 var handleJWT = require('../lib/jwt.js')
 
 const sql = {
-  add: 'insert into users(ID, UserName, PassWord) values',
+  add: 'insert into users(ID, UserName, PassWord, Admin) values',
   check: 'select * from users'
 }
 
+// 登录验证
 const findUserInfo = (name, pwd) => {
-  console.log(pwd)
   return new Promise((resolve, reject) => {
     connection.query(`${sql.check} where UserName = '${name}' limit 1;`, function (error, result) {
       if (error) {
@@ -28,7 +28,6 @@ const findUserInfo = (name, pwd) => {
       } else if (result.length !== 0) {
         result = JSON.stringify(result)
         result = JSON.parse(result)
-        console.log(result)
         if (result[0].PassWord === pwd) {
           resolve({
             Code: 200,
@@ -51,31 +50,64 @@ const findUserInfo = (name, pwd) => {
   })
 }
 
+// 注册验证
+const validateSignIn = (name, pwd) => {
+  return new Promise((resolve, reject) => {
+    connection.query(`${sql.check} where UserName = '${name}' limit 1;`, function (error, result) {
+      if (error) {
+        reject({
+          Code: 1000,
+          Message: '用户注册 - 数据库操作数出现异常',
+        })
+      }
+      if (result.length === 1) {
+        reject({
+          Code: 201,
+          Message: '用户已存在'
+        })
+      } else {
+        connection.query(`${sql.add}(null, '${name}', '${pwd}', 0)`, function (err, res) {
+          if (err) {
+            console.log(err)
+          }
+          if (res !== {}) {
+            resolve({
+              Code: 200,
+              Message: '注册成功！'
+            })
+          }
+        })
+      }
+    })
+  })
+}
 
 /* GET users listing. */
 router.post('/register', function(req, res, next) { // 新增用户
   let params = req.body.params
   let PassWord = Base64.decode(params.PassWord)
-  let getBack = {}
-  connection.query(`${sql.add}(null, '${params.UserName}', ${PassWord})`, function (err, result) {
-    if (err) {
-      console.log(err)
-      return
-    }
-    if (result !== {}){
-      getBack.Code = 200
-      getBack.Message = '注册成功'
-      res.send(getBack)
-    }
+  validateSignIn(params.UserName, PassWord).then(resolve => {
+    res.send(resolve)
+  }).catch(error => {
+    res.send(error)
   })
+  // -------------------------------------------------------------------------
+  // connection.query(`${sql.add}(null, '${params.UserName}', ${PassWord})`, function (err, result) {
+  //   if (err) {
+  //     console.log(err)
+  //     return
+  //   }
+  //   if (result !== {}){
+  //     getBack.Code = 200
+  //     getBack.Message = '注册成功'
+  //     res.send(getBack)
+  //   }
+  // })
 });
 
 router.post('/login', function(req, res, next) { // 登录
   let params = req.body.params
   let keyArray = []
-  let getBack = {
-    Data: {}
-  }
   for (prop in params) {  // 找出req.body.params对象的键
     keyArray.push(prop)
   }
