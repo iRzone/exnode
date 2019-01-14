@@ -82,6 +82,25 @@ const validateSignIn = (name, pwd) => {
   })
 }
 
+const getUsersList = () => {
+  return new Promise((resolve, reject) => {
+    connection.query(`${sql.check};`, function (error, result){
+      if (error) {
+        reject({
+          Code: 1000,
+          Message: '获取用户列表 - 数据库操作数出现异常',
+        })
+      }
+      if (result.length !== 0) {
+        resolve({
+          Code: 200,
+          Data: result
+        })
+      }
+    })
+  })
+}
+
 /* GET users listing. */
 router.post('/register', function(req, res, next) { // 新增用户
   let params = req.body.params
@@ -143,6 +162,16 @@ router.post('/login', function(req, res, next) { // 登录
   } else {
     res.send('参数错误')
   }
+})
+
+router.get('/list', function(req, res, next) {
+  console.log(req)
+  return
+  getUsersList().then(resolve => {
+    res.send(resolve)
+  }).catch(reject => {
+    res.send(reject)
+  })
 })
 
 module.exports = router;
