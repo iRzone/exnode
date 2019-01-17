@@ -22,7 +22,7 @@ const findUserInfo = (name, pwd) => {
       if (result.length === 0) {
         // 数据库中不存在该用户
         resolve({
-          Code: 401,
+          Code: 204,
           Message: '该用户尚未注册！'
         });
       } else if (result.length !== 0) {
@@ -41,7 +41,7 @@ const findUserInfo = (name, pwd) => {
           })
         } else {
           reject({
-            Code: 401,
+            Code: 202,
             Message: '密码错误！'
           })
         }
@@ -82,6 +82,7 @@ const validateSignIn = (name, pwd) => {
   })
 }
 
+// 获取用户列表
 const getUsersList = () => {
   return new Promise((resolve, reject) => {
     connection.query(`${sql.check};`, function (error, result){
@@ -92,6 +93,9 @@ const getUsersList = () => {
         })
       }
       if (result.length !== 0) {
+        result.forEach(item => {
+          delete item.PassWord
+        })
         resolve({
           Code: 200,
           Data: result
@@ -106,9 +110,9 @@ router.post('/register', function(req, res, next) { // 新增用户
   let params = req.body.params
   let PassWord = Base64.decode(params.PassWord)
   validateSignIn(params.UserName, PassWord).then(resolve => {
-    res.send(resolve)
+    res.json(resolve)
   }).catch(error => {
-    res.send(error)
+    res.json(error)
   })
   // -------------------------------------------------------------------------
   // connection.query(`${sql.add}(null, '${params.UserName}', ${PassWord})`, function (err, result) {
@@ -132,9 +136,9 @@ router.post('/login', function(req, res, next) { // 登录
   }
   if (keyArray.includes('UserName') && keyArray.includes('UserName')) {  // 判断req.body.params的键是否正确
     findUserInfo(params.UserName, Base64.decode(params.PassWord)).then(resolve => {
-      res.send(resolve)
+      res.json(resolve)
     }).catch(e => {
-      res.send(e)
+      res.json(e)
     })
     // -------------------------------------------------------------------------
     // connection.query(`${sql.check} where UserName = '${params.UserName}' and PassWord = '${Base64.decode(params.PassWord)}' limit 1;`, function (err, result) {
@@ -165,13 +169,16 @@ router.post('/login', function(req, res, next) { // 登录
 })
 
 router.get('/list', function(req, res, next) {
-  console.log(req)
-  return
-  getUsersList().then(resolve => {
-    res.send(resolve)
-  }).catch(reject => {
-    res.send(reject)
-  })
+  let result = handleJWT.validateToken(req.headers.authorization)
+  if (result.Code === 200) {
+    getUsersList().then(resolve => {
+      res.json(resolve)
+    }).catch(reject => {
+      res.json(reject)
+    })
+  } else {
+    res.json(result)
+  }
 })
 
 module.exports = router;
