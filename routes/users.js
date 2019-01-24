@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var connection = require('../db')
-var Base64 = require('base-64')
+var Base64 = require('js-base64').Base64
 var handleJWT = require('../lib/jwt.js')
 
 const sql = {
