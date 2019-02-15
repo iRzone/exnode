@@ -29,13 +29,18 @@ const findUserInfo = (name, pwd) => {
         result = JSON.stringify(result)
         result = JSON.parse(result)
         if (result[0].PassWord === pwd) {
+          let avatar = JSON.parse(result[0].Avatar)
           resolve({
             Code: 200,
             Message: '登录成功！',
             Data: {
               UserName: result[0].UserName,
               ID: result[0].ID,
-              Admin: result[0].Admin
+              Admin: result[0].Admin,
+              Avatar: {
+                delete: avatar.delete,
+                path: avatar.path
+              }
             },
             token: handleJWT.createToken(name, result[0].Admin)
           })
@@ -70,7 +75,7 @@ const validateSignIn = (name, pwd) => {
           if (err) {
             console.log(err)
           }
-          if (res !== {}) {
+          if (Object.keys(res).length !== 0) {
             resolve({
               Code: 200,
               Message: '注册成功！'
@@ -100,6 +105,32 @@ const getUsersList = () => {
           Code: 200,
           Data: result
         })
+      }
+    })
+  })
+}
+
+// 更新用户头像
+const updateMessage = (id, name, pwd) => {
+  return new Promise((resolve, reject) => {
+    connection.query(`${sql.check} where UserName = '${name}' limit 1;`, function (error, result) {
+      if (error) {
+        reject({
+          Code: 1000,
+          Message: '修改用户信息 - 数据库操作数出现异常',
+        })
+      }
+      if (result.length !== 0) {
+        result = JSON.stringify(result)
+        result = JSON.parse(result)
+        if (id !== result.ID) { // 判断是否是同一用户，不是的话提示用户名已存在
+          reject({
+            Code: 202,
+            Message: '用户名已存在'
+          })
+        } else {
+          
+        }
       }
     })
   })
@@ -176,6 +207,18 @@ router.get('/list', function(req, res, next) {
     }).catch(reject => {
       res.json(reject)
     })
+  } else {
+    res.json(result)
+  }
+})
+
+// 参数：ID、UserName、Avatar
+router.post('/update', function (req, res, next) {
+  let result = handleJWT.validateToken(req.headers.authorization)
+  let params = req.body.params
+  console.log(params)
+  if (result.Code === 200) {
+    
   } else {
     res.json(result)
   }
