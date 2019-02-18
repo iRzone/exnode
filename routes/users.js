@@ -3,10 +3,12 @@ var router = express.Router();
 var connection = require('../db')
 var Base64 = require('js-base64').Base64
 var handleJWT = require('../lib/jwt.js')
+var validateKey = require('../lib/validate.js')
 
 const sql = {
-  add: 'insert into users(ID, UserName, PassWord, Admin) values',
-  check: 'select * from users'
+  add: 'insert into users(ID, UserName, PassWord, Admin, Avatar) values',
+  check: 'select * from users',
+  update: 'update users set'
 }
 
 // 登录验证
@@ -58,6 +60,7 @@ const findUserInfo = (name, pwd) => {
 // 注册验证
 const validateSignIn = (name, pwd) => {
   return new Promise((resolve, reject) => {
+    let avatar = JSON.stringify({"delete":"https://sm.ms/delete/Bk9HPSbeCa7ryVU","filename":"iRzoneAvatar.jpg","hash":"Bk9HPSbeCa7ryVU","height":165,"ip":"219.132.205.32","path":"/2019/02/15/5c66553f72c2d.jpg","size":56826,"storename":"5c66553f72c2d.jpg","timestamp":1550210367,"url":"https://i.loli.net/2019/02/15/5c66553f72c2d.jpg","width":165})
     connection.query(`${sql.check} where UserName = '${name}' limit 1;`, function (error, result) {
       if (error) {
         reject({
@@ -71,7 +74,7 @@ const validateSignIn = (name, pwd) => {
           Message: '用户已存在'
         })
       } else {
-        connection.query(`${sql.add}(null, '${name}', '${pwd}', 0)`, function (err, res) {
+        connection.query(`${sql.add} (null, '${name}', '${pwd}', 0, '${avatar}');`, function (err, res) {
           if (err) {
             console.log(err)
           }
@@ -110,41 +113,74 @@ const getUsersList = () => {
   })
 }
 
-// 更新用户头像
-const updateMessage = (id, name, pwd) => {
+// 更新用户信息
+const updateMessage = (id, name, avatar) => {
   return new Promise((resolve, reject) => {
     connection.query(`${sql.check} where UserName = '${name}' limit 1;`, function (error, result) {
       if (error) {
         reject({
           Code: 1000,
-          Message: '修改用户信息 - 数据库操作数出现异常',
+          Message: '修改用户信息 - 查询数据库操作数出现异常',
         })
       }
       if (result.length !== 0) {
-        result = JSON.stringify(result)
-        result = JSON.parse(result)
+        result = JSON.parse(JSON.stringify(...result))
         if (id !== result.ID) { // 判断是否是同一用户，不是的话提示用户名已存在
           reject({
             Code: 202,
             Message: '用户名已存在'
           })
         } else {
-          
+          connection.query(`${sql.update} Avatar = '${avatar}' where ID = ${id};`, function (err, res) {
+            if (err) {
+              reject({
+                Code: 1000,
+                Message: '修改用户信息 - 数据库操作数出现异常',
+              })
+            }
+            if (res.length !== 0) {
+              res = JSON.parse(JSON.stringify(res))
+              resolve({
+                Code: 200,
+                Message: '修改成功！'
+              })
+            }
+          })
         }
+      } else {
+        connection.query(`${sql.update} UserName = '${name}', Avatar = '${avatar}' where ID = ${id};`, function (err, res) {
+          if (err) {
+            reject({
+              Code: 1000,
+              Message: '修改用户信息 - 数据库操作数出现异常',
+            })
+          }
+          if (res.length !== 0) {
+            resolve({
+              Code: 200,
+              Message: '修改成功！'
+            })
+          }
+        })
       }
     })
   })
 }
 
-/* GET users listing. */
-router.post('/register', function(req, res, next) { // 新增用户
+/* users listing. */
+router.post('/register', function(req, res, next) { // 注册
   let params = req.body.params
-  let PassWord = Base64.decode(params.PassWord)
-  validateSignIn(params.UserName, PassWord).then(resolve => {
-    res.json(resolve)
-  }).catch(error => {
-    res.json(error)
-  })
+  let validate = validateKey(['UserName', 'PassWord'], params)
+  if (validate.Code) {
+    let PassWord = Base64.decode(params.PassWord)
+    validateSignIn(params.UserName, PassWord).then(resolve => {
+      res.json(resolve)
+    }).catch(error => {
+      res.json(error)
+    })
+  } else {
+    res.send(validate.Message)
+  }
   // -------------------------------------------------------------------------
   // connection.query(`${sql.add}(null, '${params.UserName}', ${PassWord})`, function (err, result) {
   //   if (err) {
@@ -157,15 +193,12 @@ router.post('/register', function(req, res, next) { // 新增用户
   //     res.send(getBack)
   //   }
   // })
-});
+})
 
 router.post('/login', function(req, res, next) { // 登录
   let params = req.body.params
-  let keyArray = []
-  for (prop in params) {  // 找出req.body.params对象的键
-    keyArray.push(prop)
-  }
-  if (keyArray.includes('UserName') && keyArray.includes('UserName')) {  // 判断req.body.params的键是否正确
+  let validate = validateKey(['UserName', 'PassWord'], params)
+  if (validate.Code) {  // 判断req.body.params的键是否正确
     findUserInfo(params.UserName, Base64.decode(params.PassWord)).then(resolve => {
       res.json(resolve)
     }).catch(e => {
@@ -195,7 +228,7 @@ router.post('/login', function(req, res, next) { // 登录
     //   }
     // })
   } else {
-    res.send('参数错误')
+    res.send(validate.Message)
   }
 })
 
@@ -215,12 +248,20 @@ router.get('/list', function(req, res, next) {
 // 参数：ID、UserName、Avatar
 router.post('/update', function (req, res, next) {
   let result = handleJWT.validateToken(req.headers.authorization)
-  let params = req.body.params
-  console.log(params)
-  if (result.Code === 200) {
-    
+  let params = req.body
+  let validate = validateKey(['ID', 'UserName', 'Avatar'], params)
+  if (validate.Code) {
+    if (result.Code === 200) {
+      updateMessage(params.ID, params.UserName, params.Avatar).then(resolve => {
+        res.json(resolve)
+      }).catch(reject => {
+        res.json(reject)
+      })
+    } else {
+      res.json(result)
+    }
   } else {
-    res.json(result)
+    res.send(validate.Message)
   }
 })
 
